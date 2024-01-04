@@ -1,20 +1,42 @@
-const app = new PIXI.Application({
-    background: '#1099bb',
-    resizeTo: window,
-    
-});
-document.body.appendChild(app.view);
+class Game {
+    constructor() {
+        this.app = new PIXI.Application({
+            background: "#1088bb",
+            resizeTo: window,
+        });
 
-var a = 0
+        document.body.appendChild(this.app.view);
 
-function initGame() {
-    console.log(app.ticker.deltaTime)
+        this.app.ticker.add((delta) => this.tick(delta));
+
+        this.graphics = new PIXI.Graphics();
+
+        this.app.stage.addChild(this.graphics);
+    }
+
+    test() {
+        this.graphics.clear();
+        this.graphics.beginFill(0xDE3249);
+        this.graphics.drawRect(50, 50, 100, 100);
+        this.graphics.endFill();
+    }
+
+    tick(delta) {
+        this.test()
+        this.graphics.x += delta
+    }
 }
 
-function tick(delta) {
-    console.log(app.ticker)
+class Mirror extends PIXI.Graphics{
+    constructor() {
+
+    }
 }
 
-initGame()
+var params = new URLSearchParams(window.location.search)
 
-app.ticker.add(tick);
+for (const i of params.values()) {
+    console.log(i)
+}
+
+game = new Game()
