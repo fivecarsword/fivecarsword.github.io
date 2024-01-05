@@ -10,8 +10,10 @@ class Game {
         this.app.ticker.add((delta) => this.tick(delta));
 
         this.graphics = new PIXI.Graphics();
+        this.a = PIXI.Sprite.from('a.png');
 
         this.app.stage.addChild(this.graphics);
+        this.app.stage.addChild(this.a);
     }
 
     test() {
