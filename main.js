@@ -1,3 +1,5 @@
+Point = PIXI.Point
+
 class Game {
     constructor() {
         this.app = new PIXI.Application({
@@ -9,29 +11,51 @@ class Game {
 
         this.app.ticker.add((delta) => this.tick(delta));
 
-        this.graphics = new PIXI.Graphics();
         this.a = PIXI.Sprite.from('a.png');
 
-        this.app.stage.addChild(this.graphics);
-        this.app.stage.addChild(this.a);
+        // this.app.stage.addChild(this.a);
+
+        this.mirror = new Mirror();
+        this.mirror.x = 300
+        this.mirror.y = 300
+        this.app.stage.addChild(this.mirror);
     }
 
     test() {
-        this.graphics.clear();
-        this.graphics.beginFill(0xDE3249);
-        this.graphics.drawRect(50, 50, 100, 100);
-        this.graphics.endFill();
     }
 
     tick(delta) {
         this.test()
-        this.graphics.x += delta
+        this.mirror.angle += delta
     }
 }
 
-class Mirror extends PIXI.Graphics{
+class Mirror extends PIXI.Graphics {
     constructor() {
+        super();
+        this.vertices = [new Point(-100, -100), new Point(-100, 100), new Point(100, 100), new Point(100, -100)];
+        this.draw();
+        this.eventMode = "static";
+        
+        this.cursor = "point";
+        this.on("pointdown", this.click);
+    }
 
+    draw() {
+        this.clear();
+        this.beginFill(0x7a7a7a);
+        this.drawPolygon(this.vertices);
+        this.endFill();
+    }
+
+    click() {
+        console.log("click");
+    }
+}
+
+class Raser extends PIXI.Graphics {
+    constructor(mirrors) {
+        this.Mirrors = mirrors
     }
 }
 
