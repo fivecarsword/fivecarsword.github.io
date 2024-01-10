@@ -7,13 +7,16 @@ class Game {
             resizeTo: window,
         });
 
+        this.width = this.app.screen.width;
+        this.height = this.app.screen.height;
+
         document.body.appendChild(this.app.view);
 
         this.app.ticker.add((delta) => this.tick(delta));
 
         this.a = PIXI.Sprite.from('a.png');
 
-        // this.app.stage.addChild(this.a);
+        this.app.stage.addChild(this.a);
 
         this.mirror = new Mirror();
         this.mirror.x = 300
@@ -21,11 +24,7 @@ class Game {
         this.app.stage.addChild(this.mirror);
     }
 
-    test() {
-    }
-
     tick(delta) {
-        this.test()
         this.mirror.angle += delta
     }
 }
@@ -37,8 +36,8 @@ class Mirror extends PIXI.Graphics {
         this.draw();
         this.eventMode = "static";
         
-        this.cursor = "point";
-        this.on("pointdown", this.click);
+        this.cursor = "pointer";
+        this.on("pointerdown", this.click);
     }
 
     draw() {
@@ -50,12 +49,20 @@ class Mirror extends PIXI.Graphics {
 
     click() {
         console.log("click");
+        this.x += 10;
     }
 }
 
 class Raser extends PIXI.Graphics {
     constructor(mirrors) {
+        super();
         this.Mirrors = mirrors
+    }
+
+    draw() {
+        this.beginFill(0xff0000);
+        this.drawCircle(0, 0, 10);
+        this.endFill();
     }
 }
 
