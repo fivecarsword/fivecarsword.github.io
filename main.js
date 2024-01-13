@@ -53,6 +53,14 @@ class Game {
 
         this.mirrors = [];
 
+        let outline = new Mirror();
+        outline.vertices[0] = new Point(0, 0);
+        outline.vertices[1] = new Point(this.width, 0);
+        outline.vertices[2] = new Point(this.width, this.height);
+        outline.vertices[3] = new Point(0, this.height);
+        this.app.stage.addChild(outline);
+        this.mirrors.push(outline);
+
         this.mirror = new Mirror();
         this.mirror.x = 300;
         this.mirror.y = 300;
@@ -211,7 +219,7 @@ class Mirror extends PIXI.Graphics {
 
     draw() {
         this.clear();
-        this.beginFill(0xffffff, 0.4);
+        this.beginFill(0xffffff, 0);
         this.lineStyle(3, 0x7a7a7a, 1)
         this.drawPolygon(this.vertices);
         this.endFill();
@@ -236,7 +244,7 @@ class Laser extends PIXI.Graphics {
         this.mirrors = mirrors
         this.lineWay = [];
         this.rad = 0;
-        this.reflectCount = 50
+        this.reflectCount = 5
         this.laserLength = 3000
 
         this.update();
@@ -292,9 +300,12 @@ class Laser extends PIXI.Graphics {
     }
 
     draw() {
+        let end = this.lineWay[this.lineWay.length - 1];
+
         this.clear();
         this.beginFill(0xff0000, 1);
         this.drawCircle(0, 0, 10);
+        this.drawCircle(end.x, end.y, 5)
         this.endFill();
 
         this.lineStyle(4, 0xff0000, 1);
@@ -303,8 +314,6 @@ class Laser extends PIXI.Graphics {
         for (let i = 1; i < this.lineWay.length; i++) {
             this.lineTo(this.lineWay[i].x, this.lineWay[i].y);
         }
-
-        this.endFill();
     }
 }
 
