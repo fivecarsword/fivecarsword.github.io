@@ -72,8 +72,8 @@ class Game {
         }
 
         this.laser = new Laser(this.mirrors);
-        this.laser.x = 10;
-        this.laser.y = 30;
+        this.laser.x = this.width / 2;
+        this.laser.y = this.height / 2;
         this.app.stage.addChild(this.laser);
 
         this.g = new PIXI.Graphics();
@@ -236,7 +236,7 @@ class Laser extends PIXI.Graphics {
         this.mirrors = mirrors
         this.lineWay = [];
         this.rad = 0;
-        this.reflectCount = 5
+        this.reflectCount = 50
         this.laserLength = 3000
 
         this.update();
@@ -249,7 +249,7 @@ class Laser extends PIXI.Graphics {
         this.lineWay.push(new Point(0, 0));
         this.lineWay.push(new Point(this.laserLength * cos(this.rad), this.laserLength * sin(this.rad)));
 
-        for (let i = 0; i < this.reflectCount; i++) {
+        for (let i = 0; i < this.reflectCount + 1; i++) {
             let start = this.lineWay[i].add(this.position);
             let end = this.lineWay[i + 1].add(this.position);
 
@@ -274,23 +274,29 @@ class Laser extends PIXI.Graphics {
             }
             
             if (closestPos != null) {
+                this.lineWay[i + 1].copyFrom(closestPos.subtract(this.position));
+
                 let lineV = end.subtract(start);
 
                 lineV = lineV.reflect(new Point(edgeV.y, - edgeV.x).normalize());
-
-                this.lineWay[i + 1].copyFrom(closestPos.subtract(this.position));
 
                 this.lineWay.push(this.lineWay[i + 1].add(lineV));
             } else {
                 break;
             }
         }
+
+        if (this.lineWay.length == this.reflectCount + 3) {
+            this.lineWay.pop();
+        }
     }
 
     draw() {
         this.clear();
-        this.beginFill(0xff0000, 0);
+        this.beginFill(0xff0000, 1);
         this.drawCircle(0, 0, 10);
+        this.endFill();
+
         this.lineStyle(4, 0xff0000, 1);
         this.moveTo(this.lineWay[0].x, this.lineWay[0].y);
 
