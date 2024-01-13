@@ -31,7 +31,10 @@ class Game {
         this.app = new PIXI.Application({
             background: "#1088bb",
             resizeTo: window,
+            antialiasing: true,
         });
+
+        this.app.ticker.maxFPS = 30;
 
         this.width = this.app.screen.width;
         this.height = this.app.screen.height;
@@ -42,9 +45,10 @@ class Game {
         this.app.stage.hitArea = this.app.screen;
 
         this.app.ticker.add((delta) => this.tick(delta));
-        this.app.stage.on('pointermove', this.pointerMove, this);
+        this.app.stage.on('pointermove', this.pointerMove.bind(this));
 
         this.a = PIXI.Sprite.from('a.png');
+        this.a.alpha = 0;
         this.app.stage.addChild(this.a);
 
         this.mirrors = [];
@@ -57,6 +61,16 @@ class Game {
 
         this.mirrors.push(this.mirror);
 
+        for (let i = 0; i < 5; i++) {
+            let mirror = new Mirror();
+            mirror.x = Math.random() * this.width;
+            mirror.y = Math.random() * this.height;
+            mirror.angle = Math.random() * 360;
+            this.app.stage.addChild(mirror);
+
+            this.mirrors.push(mirror);
+        }
+
         this.laser = new Laser(this.mirrors);
         this.laser.x = 10;
         this.laser.y = 30;
@@ -64,6 +78,11 @@ class Game {
 
         this.g = new PIXI.Graphics();
         this.app.stage.addChild(this.g);
+
+        this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", "space"]);
+
+        this.text = new PIXI.Text("move : A, S, D, W\nrotate : Q, E");
+        this.app.stage.addChild(this.text);
     }
 
     tick(delta) {
@@ -71,7 +90,24 @@ class Game {
         this.laser.update();
         this.laser.draw();
 
-        this.mirror.angle += delta
+        if (this.keyboard.isPressed("a")) {
+            this.mirror.x -= delta;
+        }
+        if (this.keyboard.isPressed("d")) {
+            this.mirror.x += delta;
+        }
+        if (this.keyboard.isPressed("w")) {
+            this.mirror.y -= delta;
+        }
+        if (this.keyboard.isPressed("s")) {
+            this.mirror.y += delta;
+        }
+        if (this.keyboard.isPressed("q")) {
+            this.mirror.angle -= delta;
+        }
+        if (this.keyboard.isPressed("e")) {
+            this.mirror.angle += delta;
+        }
     }
 
     pointerMove(event) {
@@ -80,15 +116,68 @@ class Game {
     }
 }
 
+class Keyboard {
+    constructor(activeKeys) {
+        this.activeKeys = activeKeys;
+        this.keys = {};
+
+        for (let key of activeKeys) {
+            this.keys[key] = {};
+            this.keys[key].pressed = false;
+            this.keys[key].down = undefined;
+            this.keys[key].up = undefined;
+        }
+
+        window.addEventListener("keydown", this.keyDown.bind(this));
+        window.addEventListener("keyup", this.keyUp.bind(this));
+    }
+
+    setKeyDownEvent(key, func) {
+        if (this.activeKeys.includes(key)) {
+            this.keys[key].down = func;
+        } 
+    }
+
+    setKeyUpEvent(key, func) {
+        if (this.activeKeys.includes(key)) {
+            this.keys[key].up = func;
+        } 
+    }
+
+    keyDown(event) {
+        if (this.activeKeys.includes(event.key)) {
+            let key = this.keys[event.key];
+            if (!key.pressed && key.down) {
+                key.down();
+            }
+            key.pressed = true;
+        }
+    }
+
+    keyUp(event) {
+        if (this.activeKeys.includes(event.key)) {
+            let key = this.keys[event.key];
+            if (key.pressed && key.up) {
+                key.up();
+            }
+            key.pressed = false;
+        }
+    }
+
+    isPressed(key) {
+        return this.keys[key].pressed;
+    }
+}
+
 class Mirror extends PIXI.Graphics {
     constructor() {
         super();
-        this.vertices = [new Point(-100, -100), new Point(-100, 100), new Point(100, 100), new Point(100, -100)];
+        this.vertices = [new Point(-50, -50), new Point(-50, 50), new Point(50, 50), new Point(50, -50)];
         this.draw();
         this.eventMode = "static";
         
         this.cursor = "pointer";
-        this.on("pointerdown", this.click);
+        this.on("pointerdown", this.click.bind(this));
     }
 
     getRealVertices() {
@@ -122,7 +211,8 @@ class Mirror extends PIXI.Graphics {
 
     draw() {
         this.clear();
-        this.beginFill(0x7a7a7a);
+        this.beginFill(0xffffff, 0.4);
+        this.lineStyle(3, 0x7a7a7a, 1)
         this.drawPolygon(this.vertices);
         this.endFill();
     }
@@ -164,7 +254,7 @@ class Laser extends PIXI.Graphics {
             let end = this.lineWay[i + 1].add(this.position);
 
             let closestPos = null;
-            let closestDis = 1000000;
+            let closestDis = Number.POSITIVE_INFINITY;
             let edgeV;
 
             let infos = [];
@@ -207,8 +297,7 @@ class Laser extends PIXI.Graphics {
         for (let i = 1; i < this.lineWay.length; i++) {
             this.lineTo(this.lineWay[i].x, this.lineWay[i].y);
         }
-        
-        // this.closePath();
+
         this.endFill();
     }
 }
