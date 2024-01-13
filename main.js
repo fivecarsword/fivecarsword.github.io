@@ -58,6 +58,7 @@ class Game {
         outline.vertices[1] = new Point(this.width, 0);
         outline.vertices[2] = new Point(this.width, this.height);
         outline.vertices[3] = new Point(0, this.height);
+        outline.draw();
         this.app.stage.addChild(outline);
         this.mirrors.push(outline);
 
@@ -305,6 +306,7 @@ class Laser extends PIXI.Graphics {
         this.clear();
         this.beginFill(0xff0000, 1);
         this.drawCircle(0, 0, 10);
+        this.beginFill(0xffff00, 1);
         this.drawCircle(end.x, end.y, 5)
         this.endFill();
 
