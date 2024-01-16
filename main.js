@@ -26,6 +26,55 @@ function lineline(x1, y1, x2, y2, x3, y3, x4, y4) {
     return null;
 }
 
+function linePoint(x1, y1, x2, y2, px, py) {
+    let d1 = Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+    let d2 = Math.sqrt((px - x2) * (px - x2) + (py - y2) * (py - y2));
+  
+    let lineLen = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+  
+    let buffer = EPS;
+  
+    if (d1+d2 >= lineLen-buffer && d1+d2 <= lineLen+buffer) {
+        return true;
+    }
+    return false;
+}
+
+function lineCircle(x1, y1, x2, y2, cx, cy, r) {
+    // is either end INSIDE the circle?
+    // if so, return true immediately
+    let inside1 = pointCircle(x1,y1, cx,cy,r);
+    let inside2 = pointCircle(x2,y2, cx,cy,r);
+    if (inside1 || inside2) return true;
+
+    // get length of the line
+    let distX = x1 - x2;
+    let distY = y1 - y2;
+    let len = sqrt( (distX*distX) + (distY*distY) );
+  
+    // get dot product of the line and circle
+    let dot = ( ((cx-x1)*(x2-x1)) + ((cy-y1)*(y2-y1)) ) / pow(len,2);
+  
+    // find the closest point on the line
+    let closestX = x1 + (dot * (x2-x1));
+    let closestY = y1 + (dot * (y2-y1));
+  
+    // is this point actually on the line segment?
+    // if so keep going, but if not, return false
+    let onSegment = linePoint(x1,y1,x2,y2, closestX,closestY);
+    if (!onSegment) return null;
+  
+    // get distance to closest point
+    distX = closestX - cx;
+    distY = closestY - cy;
+    let distance = sqrt( (distX*distX) + (distY*distY) );
+  
+    if (distance <= r) {
+      return new Point(closestX, closestY);
+    }
+    return null;
+  }
+
 class Game {
     constructor() {
         this.app = new PIXI.Application({
@@ -42,33 +91,34 @@ class Game {
         document.body.appendChild(this.app.view);
 
         this.app.stage.eventMode = 'static';
-        this.app.stage.hitArea = this.app.screen;
 
         this.app.ticker.add((delta) => this.tick(delta));
         this.app.stage.on('pointermove', this.pointerMove.bind(this));
+
+        this.app.stage.x = 100;
 
         this.a = PIXI.Sprite.from('a.png');
         this.a.alpha = 0;
         this.app.stage.addChild(this.a);
 
-        this.mirrors = [];
+        this.boxs = [];
 
-        let outline = new Mirror();
+        let outline = new Box();
         outline.vertices[0] = new Point(0, 0);
         outline.vertices[1] = new Point(this.width, 0);
         outline.vertices[2] = new Point(this.width, this.height);
         outline.vertices[3] = new Point(0, this.height);
         outline.draw();
         this.app.stage.addChild(outline);
-        this.mirrors.push(outline);
+        this.boxs.push(outline);
 
-        this.mirror = new Mirror();
+        this.mirror = new MovableMirror();
         this.mirror.x = 300;
         this.mirror.y = 300;
         this.mirror.angle = 70
         this.app.stage.addChild(this.mirror);
 
-        this.mirrors.push(this.mirror);
+        this.boxs.push(this.mirror);
 
         for (let i = 0; i < 5; i++) {
             let mirror = new Mirror();
@@ -77,13 +127,16 @@ class Game {
             mirror.angle = Math.random() * 360;
             this.app.stage.addChild(mirror);
 
-            this.mirrors.push(mirror);
+            this.boxs.push(mirror);
         }
 
-        this.laser = new Laser(this.mirrors);
+        this.laser = new Laser(this.boxs);
         this.laser.x = this.width / 2;
         this.laser.y = this.height / 2;
         this.app.stage.addChild(this.laser);
+
+        this.goal = new Goal();
+        this.app.stage.addChild(this.goal);
 
         this.g = new PIXI.Graphics();
         this.app.stage.addChild(this.g);
@@ -95,9 +148,12 @@ class Game {
     }
 
     tick(delta) {
+        let area = this.app.screen.clone();
+        area.x = -this.app.stage.x;
+        area.y = -this.app.stage.y;
+        this.app.stage.hitArea = area;
         // this.laser.rad = (this.laser.rad - delta * 0.01) % (2 * Math.PI);
         this.laser.update();
-        this.laser.draw();
 
         if (this.keyboard.isPressed("a")) {
             this.mirror.x -= delta;
@@ -120,8 +176,8 @@ class Game {
     }
 
     pointerMove(event) {
-        let p = event.global.subtract(this.laser.position);
-        this.laser.rad = Math.atan2(p.y, p.x);
+        let p = this.app.stage.toLocal(event.global).subtract(this.laser.position);
+        this.laser.radian = Math.atan2(p.y, p.x);
     }
 }
 
@@ -178,15 +234,23 @@ class Keyboard {
     }
 }
 
-class Mirror extends PIXI.Graphics {
-    constructor() {
+class Box extends PIXI.Graphics {
+    constructor(vertices, pos, rad) {
         super();
         this.vertices = [new Point(-50, -50), new Point(-50, 50), new Point(50, 50), new Point(50, -50)];
+
+        if (vertices !== undefined) {
+            this.vertices = vertices;
+        }
+        if (pos !== undefined) {
+            this.position = pos;
+        }
+        if (rad !== undefined) {
+            this.rotation = rad;
+        }
+
         this.draw();
         this.eventMode = "static";
-        
-        this.cursor = "pointer";
-        this.on("pointerdown", this.click.bind(this));
     }
 
     getRealVertices() {
@@ -225,10 +289,48 @@ class Mirror extends PIXI.Graphics {
         this.drawPolygon(this.vertices);
         this.endFill();
     }
+}
 
-    click() {
-        console.log("click");
-        this.x += 10;
+class Mirror extends Box {
+    draw() {
+        this.clear();
+        this.beginFill(0xffffff, 0.1);
+        this.lineStyle(3, 0x7a7a7a, 1)
+        this.drawPolygon(this.vertices);
+        this.endFill();
+    }
+}
+
+class MovableMirror extends Mirror {
+    constructor(vertices, pos, rad) {
+        super(vertices, pos, rad);
+
+        this.isDown = false;
+
+        this.cursor = "pointer";
+        this.on("pointerdown", this.pointDown.bind(this));
+        this.on("pointerup", this.pointUp.bind(this));
+        this.on("pointerout", this.pointOut.bind(this));
+        this.on("pointermove", this.pointerMove.bind(this));
+    }
+
+    pointDown(event) {
+        this.isDown = true;
+    }
+
+    pointUp(event) {
+        this.isDown = false;
+    }
+
+    pointOut(event) {
+        this.isDown = false;
+    }
+
+    pointerMove(event) {
+        if (this.isDown) {
+            this.x += event.movementX;
+            this.y += event.movementY;
+        }
     }
 }
 
@@ -240,47 +342,37 @@ class CollisionInfo {
 }
 
 class Laser extends PIXI.Graphics {
-    constructor(mirrors) {
+    constructor(boxs, pos, rad) {
         super();
-        this.mirrors = mirrors
+        this.boxs = boxs;
+
+        this.radian = 0;
+
+        if (pos !== undefined) {
+            this.position = pos;
+        }
+        if (rad !== undefined) {
+            this.radian = rad;
+        }
+
         this.lineWay = [];
-        this.rad = 0;
-        this.reflectCount = 5
-        this.laserLength = 3000
+        this.reflectCount = 5;
+        this.laserLength = 3000;    
 
         this.update();
-        this.draw();
     }
 
     update() {
         this.lineWay.length = 0;
 
         this.lineWay.push(new Point(0, 0));
-        this.lineWay.push(new Point(this.laserLength * cos(this.rad), this.laserLength * sin(this.rad)));
+        this.lineWay.push(new Point(this.laserLength * cos(this.radian), this.laserLength * sin(this.radian)));
 
-        for (let i = 0; i < this.reflectCount + 1; i++) {
+        for (let i = 0; i < this.reflectCount; i++) {
             let start = this.lineWay[i].add(this.position);
             let end = this.lineWay[i + 1].add(this.position);
 
-            let closestPos = null;
-            let closestDis = Number.POSITIVE_INFINITY;
-            let edgeV;
-
-            let infos = [];
-
-            for (let mirror of this.mirrors) {
-                infos.push(...mirror.checkLineCollision(start, end));
-            }
-
-            for (let info of infos) {
-                let distance = info.pos.subtract(start).magnitude();
-
-                if (distance < closestDis) {
-                    closestPos = info.pos;
-                    closestDis = distance;
-                    edgeV = info.edgeV;
-                }
-            }
+            let [closestPos, edgeV] = this.collisionMirror(start, end);
             
             if (closestPos != null) {
                 this.lineWay[i + 1].copyFrom(closestPos.subtract(this.position));
@@ -295,9 +387,16 @@ class Laser extends PIXI.Graphics {
             }
         }
 
-        if (this.lineWay.length == this.reflectCount + 3) {
-            this.lineWay.pop();
+        let start = this.lineWay[this.lineWay.length - 2].add(this.position);
+        let end = this.lineWay[this.lineWay.length - 1].add(this.position);
+
+        let [closestPos, _] = this.collisionMirror(start, end);
+
+        if (closestPos != null) {
+            this.lineWay[this.lineWay.length - 1].copyFrom(closestPos.subtract(this.position));
         }
+        
+        this.draw();
     }
 
     draw() {
@@ -316,6 +415,53 @@ class Laser extends PIXI.Graphics {
         for (let i = 1; i < this.lineWay.length; i++) {
             this.lineTo(this.lineWay[i].x, this.lineWay[i].y);
         }
+    }
+
+    collisionMirror(start, end) {
+        let closestPos = null;
+        let closestDis = Number.POSITIVE_INFINITY;
+        let edgeV;
+
+        let infos = [];
+
+        for (let mirror of this.boxs) {
+            infos.push(...mirror.checkLineCollision(start, end));
+        }
+
+        for (let info of infos) {
+            let distance = info.pos.subtract(start).magnitude();
+
+            if (distance < closestDis) {
+                closestPos = info.pos;
+                closestDis = distance;
+                edgeV = info.edgeV;
+            }
+        }
+
+        return [closestPos, edgeV];
+    }
+}
+
+class Goal extends PIXI.Graphics {
+    constructor(radius, pos) {
+        super();
+
+        this.radius = radius;
+
+        if (pos !== undefined) {
+            this.position = pos;
+        }
+
+        this.draw();
+    }
+
+    draw() {
+        this.beginFill(0xee0000);
+        this.drawCircle(0, 0, this.radius);
+    }
+
+    checkLineCollision(start, end) {
+        return lineCircle(start.x, start.y, end.x, end.y, this.x, this.y, this.radius);
     }
 }
 
