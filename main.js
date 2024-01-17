@@ -102,12 +102,17 @@ class Game {
         this.stage.on("pointerupoutside", this.pointerUpOutside.bind(this));
 
         this.isObjectMoving = false;
+        this.movingTaget = null;
 
         this.move = ((event) => {
             if (!this.isObjectMoving) {
                 this.stage.x += event.movementX;
                 this.stage.y += event.movementY;
+            } else {
+                this.movingTaget.x += event.movementX;
+                this.movingTaget.y += event.movementY;
             }
+
         }).bind(this);
 
         this.a = PIXI.Sprite.from('a.png');
@@ -317,12 +322,11 @@ class MovableMirror extends Mirror {
     }
 
     pointerDown(event) {
-        this.parent.on("pointermove", this.move);
         this.game.isObjectMoving = true;
+        this.game.movingTaget = this;
     }
 
     pointerUp(event) {
-        this.parent.off("pointermove", this.move);
         this.game.isObjectMoving = false;
     }
 
