@@ -95,9 +95,24 @@ class Game {
         this.app.ticker.add((delta) => this.tick(delta));
         this.app.stage.on('pointermove', this.pointerMove.bind(this));
 
+        this.stage = this.app.stage;
+
+        this.stage.on("pointerdown", this.pointerDown.bind(this));
+        this.stage.on("pointerup", this.pointerUp.bind(this));
+        this.stage.on("pointerupoutside", this.pointerUpOutside.bind(this));
+
+        this.isObjectMoving = false;
+
+        this.move = ((event) => {
+            if (!this.isObjectMoving) {
+                this.stage.x += event.movementX;
+                this.stage.y += event.movementY;
+            }
+        }).bind(this);
+
         this.a = PIXI.Sprite.from('a.png');
         this.a.alpha = 0;
-        this.app.stage.addChild(this.a);
+        this.stage.addChild(this.a);
 
         this.boxs = [];
 
@@ -107,15 +122,15 @@ class Game {
         outline.vertices[2] = new Point(this.width, this.height);
         outline.vertices[3] = new Point(0, this.height);
         outline.draw();
-        this.app.stage.addChild(outline);
+        this.stage.addChild(outline);
         this.boxs.push(outline);
 
         for (let i = 0; i < 7; i++) {
-            let mirror = new MovableMirror();
+            let mirror = new MovableMirror(this);
             mirror.x = Math.random() * this.width;
             mirror.y = Math.random() * this.height;
             mirror.angle = Math.random() * 360;
-            this.app.stage.addChild(mirror);
+            this.stage.addChild(mirror);
 
             this.boxs.push(mirror);
         }
@@ -123,13 +138,13 @@ class Game {
         this.laser = new Laser(this.boxs);
         this.laser.x = this.width / 2;
         this.laser.y = this.height / 2;
-        this.app.stage.addChild(this.laser);
+        this.stage.addChild(this.laser);
 
         this.goal = new Goal();
-        this.app.stage.addChild(this.goal);
+        this.stage.addChild(this.goal);
 
         this.g = new PIXI.Graphics();
-        this.app.stage.addChild(this.g);
+        this.stage.addChild(this.g);
 
         this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", " "]);
 
@@ -145,6 +160,18 @@ class Game {
         this.app.stage.hitArea = area;
         // this.laser.rad = (this.laser.rad - delta * 0.01) % (2 * Math.PI);
         this.laser.update();
+    }
+
+    pointerDown(event) {
+        this.stage.on("pointermove", this.move);
+    }
+
+    pointerUp(event) {
+        this.stage.off("pointermove", this.move);
+    }
+
+    pointerUpOutside(event) {
+        this.stage.off("pointermove", this.move);
     }
 
     pointerMove(event) {
@@ -274,8 +301,10 @@ class Mirror extends Box {
 }
 
 class MovableMirror extends Mirror {
-    constructor(vertices, pos, rad) {
+    constructor(game, vertices, pos, rad) {
         super(vertices, pos, rad);
+
+        this.game = game;
 
         this.isDown = false;
 
@@ -289,20 +318,22 @@ class MovableMirror extends Mirror {
 
     pointerDown(event) {
         this.parent.on("pointermove", this.move);
+        this.game.isObjectMoving = true;
     }
 
     pointerUp(event) {
         this.parent.off("pointermove", this.move);
+        this.game.isObjectMoving = false;
     }
 
     pointerUpOutside(event) {
         this.parent.off("pointermove", this.move);
+        this.game.isObjectMoving = false;
     }
 
     pointerMove(event) {
         this.x += event.movementX;
         this.y += event.movementY;
-        
     }
 }
 
