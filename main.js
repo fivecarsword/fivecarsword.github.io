@@ -95,8 +95,6 @@ class Game {
         this.app.ticker.add((delta) => this.tick(delta));
         this.app.stage.on('pointermove', this.pointerMove.bind(this));
 
-        this.app.stage.x = 100;
-
         this.a = PIXI.Sprite.from('a.png');
         this.a.alpha = 0;
         this.app.stage.addChild(this.a);
