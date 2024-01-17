@@ -95,6 +95,8 @@ class Game {
         this.app.ticker.add((delta) => this.tick(delta));
         this.app.stage.on('pointermove', this.pointerMove.bind(this));
 
+        this.app.stage.x = 100;
+
         this.a = PIXI.Sprite.from('a.png');
         this.a.alpha = 0;
         this.app.stage.addChild(this.a);
@@ -110,16 +112,8 @@ class Game {
         this.app.stage.addChild(outline);
         this.boxs.push(outline);
 
-        this.mirror = new MovableMirror();
-        this.mirror.x = 300;
-        this.mirror.y = 300;
-        this.mirror.angle = 70
-        this.app.stage.addChild(this.mirror);
-
-        this.boxs.push(this.mirror);
-
-        for (let i = 0; i < 5; i++) {
-            let mirror = new Mirror();
+        for (let i = 0; i < 7; i++) {
+            let mirror = new MovableMirror();
             mirror.x = Math.random() * this.width;
             mirror.y = Math.random() * this.height;
             mirror.angle = Math.random() * 360;
@@ -139,10 +133,11 @@ class Game {
         this.g = new PIXI.Graphics();
         this.app.stage.addChild(this.g);
 
-        this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", "space"]);
+        this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", " "]);
 
-        this.text = new PIXI.Text("move : A, S, D, W\nrotate : Q, E");
-        this.app.stage.addChild(this.text);
+        this.keyboard.setKeyDownEvent(" ", () => {
+            this.a.alpha = (this.a.alpha + 1) % 2;
+        });
     }
 
     tick(delta) {
@@ -152,25 +147,6 @@ class Game {
         this.app.stage.hitArea = area;
         // this.laser.rad = (this.laser.rad - delta * 0.01) % (2 * Math.PI);
         this.laser.update();
-
-        if (this.keyboard.isPressed("a")) {
-            this.mirror.x -= delta;
-        }
-        if (this.keyboard.isPressed("d")) {
-            this.mirror.x += delta;
-        }
-        if (this.keyboard.isPressed("w")) {
-            this.mirror.y -= delta;
-        }
-        if (this.keyboard.isPressed("s")) {
-            this.mirror.y += delta;
-        }
-        if (this.keyboard.isPressed("q")) {
-            this.mirror.angle -= delta;
-        }
-        if (this.keyboard.isPressed("e")) {
-            this.mirror.angle += delta;
-        }
     }
 
     pointerMove(event) {
@@ -306,29 +282,29 @@ class MovableMirror extends Mirror {
         this.isDown = false;
 
         this.cursor = "pointer";
-        this.on("pointerdown", this.pointDown.bind(this));
-        this.on("pointerup", this.pointUp.bind(this));
-        this.on("pointerout", this.pointOut.bind(this));
-        this.on("pointermove", this.pointerMove.bind(this));
+        this.on("pointerdown", this.pointerDown.bind(this));
+        this.on("pointerup", this.pointerUp.bind(this));
+        this.on("pointerupoutside", this.pointerUpOutside.bind(this));
+
+        this.move = this.pointerMove.bind(this);
     }
 
-    pointDown(event) {
-        this.isDown = true;
+    pointerDown(event) {
+        this.parent.on("pointermove", this.move);
     }
 
-    pointUp(event) {
-        this.isDown = false;
+    pointerUp(event) {
+        this.parent.off("pointermove", this.move);
     }
 
-    pointOut(event) {
-        this.isDown = false;
+    pointerUpOutside(event) {
+        this.parent.off("pointermove", this.move);
     }
 
     pointerMove(event) {
-        if (this.isDown) {
-            this.x += event.movementX;
-            this.y += event.movementY;
-        }
+        this.x += event.movementX;
+        this.y += event.movementY;
+        
     }
 }
 
