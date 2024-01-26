@@ -73,29 +73,51 @@ function lineCircle(x1, y1, x2, y2, cx, cy, r) {
       return new Point(closestX, closestY);
     }
     return null;
-  }
+}
+
+function addParameter(url, key, value) {
+    return `${url}&${key}=${value}`;
+}
 
 class Game {
-    constructor() {
+    constructor({width, height, laserPos, laserRadian = 0, laserReflectCount = 5, boxes = undefined} = {}) {
         this.app = new PIXI.Application({
             background: "#1088bb",
             resizeTo: window,
             antialiasing: true,
         });
 
-        this.app.ticker.maxFPS = 30;
+        this.stage = this.app.stage;
+        this.movable = new PIXI.Container();
+        this.fixed = new PIXI.Container();
 
-        this.width = this.app.screen.width;
-        this.height = this.app.screen.height;
+        if (width === undefined) {
+            this.width = this.app.screen.width;
+        } else {
+            this.width = width;
+        }
+        if (height === undefined) {
+            this.height = this.app.screen.height;
+        } else {
+            this.height = height;
+        }
+
+        this.stage.position = new Point(this.app.screen.width / 2 - this.width / 2, this.app.screen.height / 2 - this.height / 2);
+
+        if (laserPos === undefined) {
+            laserPos = new Point(this.width / 2, this.height / 2);
+        }
+
+        this.boxes = boxes;
+
+        this.app.ticker.maxFPS = 30;
 
         document.body.appendChild(this.app.view);
 
-        this.app.stage.eventMode = 'static';
+        this.stage.eventMode = 'static';
 
         this.app.ticker.add((delta) => this.tick(delta));
-        this.app.stage.on('pointermove', this.pointerMove.bind(this));
-
-        this.stage = this.app.stage;
+        this.stage.on('pointermove', this.pointerMove.bind(this));
 
         this.stage.on("pointerdown", this.pointerDown.bind(this));
         this.stage.on("pointerup", this.pointerUp.bind(this));
@@ -119,37 +141,56 @@ class Game {
         this.a.alpha = 0;
         this.stage.addChild(this.a);
 
-        this.boxs = [];
+        if (this.boxes === undefined) {
+            this.boxes = [];
+            for (let i = 0; i < 7; i++) {
+                let x = Math.random() * this.width;
+                let y = Math.random() * this.height;
+                let radian = Math.random() * Math.PI * 2;
+                let mirror = new Mirror({game: this, pos: new Point(x, y), radian: radian, movable: true});
+                this.movable.addChild(mirror);
 
-        let outline = new Box();
-        outline.vertices[0] = new Point(0, 0);
-        outline.vertices[1] = new Point(this.width, 0);
-        outline.vertices[2] = new Point(this.width, this.height);
-        outline.vertices[3] = new Point(0, this.height);
-        outline.draw();
-        this.stage.addChild(outline);
-        this.boxs.push(outline);
-
-        for (let i = 0; i < 7; i++) {
-            let mirror = new MovableMirror(this);
-            mirror.x = Math.random() * this.width;
-            mirror.y = Math.random() * this.height;
-            mirror.angle = Math.random() * 360;
-            this.stage.addChild(mirror);
-
-            this.boxs.push(mirror);
+                this.boxes.push(mirror);
+            }
+        } else {
+            for (let box of this.boxes) {
+                if (box.movable) {
+                    this.movable.addChild(box);
+                } else {
+                    this.fixed.addChild(box);
+                }
+                box.game = this;
+            }
         }
 
-        this.laser = new Laser(this.boxs);
-        this.laser.x = this.width / 2;
-        this.laser.y = this.height / 2;
-        this.stage.addChild(this.laser);
+        this.outline = new Box({
+            vertices: [
+                new Point(0, 0),
+                new Point(this.width, 0),
+                new Point(this.width, this.height),
+                new Point(0, this.height)
+            ],
+        });
+        this.fixed.addChild(this.outline);
+        this.boxes.push(this.outline);
+
+        this.laser = new Laser({
+            boxes: this.boxes,
+            pos: laserPos,
+            radian: laserRadian,
+            laserLength: Math.sqrt(this.width * this.width + this.height * this.height) + 10,
+            reflectCount: laserReflectCount,
+        });
 
         this.goal = new Goal();
-        this.stage.addChild(this.goal);
 
         this.g = new PIXI.Graphics();
+
         this.stage.addChild(this.g);
+        this.stage.addChild(this.laser);
+        this.stage.addChild(this.goal);
+        this.stage.addChild(this.fixed);
+        this.stage.addChild(this.movable);
 
         this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", " "]);
 
@@ -163,7 +204,7 @@ class Game {
         area.x = -this.app.stage.x;
         area.y = -this.app.stage.y;
         this.app.stage.hitArea = area;
-        // this.laser.rad = (this.laser.rad - delta * 0.01) % (2 * Math.PI);
+        this.laser.radian = (this.laser.radian - delta * 0.01) % (2 * Math.PI);
         this.laser.update();
     }
 
@@ -180,8 +221,33 @@ class Game {
     }
 
     pointerMove(event) {
-        let p = this.app.stage.toLocal(event.global).subtract(this.laser.position);
-        this.laser.radian = Math.atan2(p.y, p.x);
+        // let p = this.app.stage.toLocal(event.global).subtract(this.laser.position);
+        // this.laser.radian = Math.atan2(p.y, p.x);
+    }
+
+    createURL() {
+        let url = "https://fivecarsword.github.io/game?";
+
+        url = addParameter(url, "size", `${this.width},${this.height}`);
+
+        url = addParameter(url, "laser", `${this.laser.x},${this.laser.y},${this.laser.radian},${this.laser.reflectCount}`);
+
+        for (let box of this.boxes) {
+            console.log(box, this.outline);
+            if (box === this.outline) {
+                console.log(box);
+                continue;
+            }
+            let vertices = ""
+            for (let pos of box.vertices) {
+                vertices += `${pos.x},${pos.y},`;
+            }
+            vertices = vertices.slice(0, -1);
+
+            url = addParameter(url, "box", `${box.constructor.name},${box.x},${box.y},${box.rotation},${box.movable},${vertices}`);
+        }
+
+        return url;
     }
 }
 
@@ -239,18 +305,25 @@ class Keyboard {
 }
 
 class Box extends PIXI.Graphics {
-    constructor(vertices, pos, rad) {
+    constructor({
+        vertices = [new Point(-50, -50), new Point(-50, 50), new Point(50, 50), new Point(50, -50)],
+        pos = new Point(0, 0),
+        radian = 0,
+        movable = false,
+        game,
+        } = {}) {
         super();
-        this.vertices = [new Point(-50, -50), new Point(-50, 50), new Point(50, 50), new Point(50, -50)];
+        this.vertices = vertices;
+        this.position = pos;
+        this.rotation = radian;
+        this.movable = movable;
+        this.game = game;
 
-        if (vertices !== undefined) {
-            this.vertices = vertices;
-        }
-        if (pos !== undefined) {
-            this.position = pos;
-        }
-        if (rad !== undefined) {
-            this.rotation = rad;
+        if (movable) {
+            this.cursor = "pointer";
+            this.on("pointerdown", this.pointerDown.bind(this));
+            this.on("pointerup", this.pointerUp.bind(this));
+            this.on("pointerupoutside", this.pointerUpOutside.bind(this));
         }
 
         this.draw();
@@ -288,10 +361,28 @@ class Box extends PIXI.Graphics {
 
     draw() {
         this.clear();
-        this.beginFill(0xffffff, 0);
+        this.beginFill(0xffffff, 0.000001);
         this.lineStyle(3, 0x7a7a7a, 1)
         this.drawPolygon(this.vertices);
         this.endFill();
+    }
+
+    pointerDown(event) {
+        this.game.isObjectMoving = true;
+        this.game.movingTaget = this;
+    }
+
+    pointerUp(event) {
+        this.game.isObjectMoving = false;
+    }
+
+    pointerUpOutside(event) {
+        this.game.isObjectMoving = false;
+    }
+
+    pointerMove(event) {
+        this.x += event.movementX;
+        this.y += event.movementY;
     }
 }
 
@@ -305,42 +396,6 @@ class Mirror extends Box {
     }
 }
 
-class MovableMirror extends Mirror {
-    constructor(game, vertices, pos, rad) {
-        super(vertices, pos, rad);
-
-        this.game = game;
-
-        this.isDown = false;
-
-        this.cursor = "pointer";
-        this.on("pointerdown", this.pointerDown.bind(this));
-        this.on("pointerup", this.pointerUp.bind(this));
-        this.on("pointerupoutside", this.pointerUpOutside.bind(this));
-
-        this.move = this.pointerMove.bind(this);
-    }
-
-    pointerDown(event) {
-        this.game.isObjectMoving = true;
-        this.game.movingTaget = this;
-    }
-
-    pointerUp(event) {
-        this.game.isObjectMoving = false;
-    }
-
-    pointerUpOutside(event) {
-        this.parent.off("pointermove", this.move);
-        this.game.isObjectMoving = false;
-    }
-
-    pointerMove(event) {
-        this.x += event.movementX;
-        this.y += event.movementY;
-    }
-}
-
 class CollisionInfo {
     constructor(pos, edgeV) {
         this.pos = pos;
@@ -349,22 +404,17 @@ class CollisionInfo {
 }
 
 class Laser extends PIXI.Graphics {
-    constructor(boxs, pos, rad) {
+    constructor({boxes = [], pos = new Point(0, 0), radian = 0, reflectCount = 5, laserLength = 3000} = {}) {
         super();
-        this.boxs = boxs;
+        this.boxes = boxes;
 
-        this.radian = 0;
+        this.position = pos;
 
-        if (pos !== undefined) {
-            this.position = pos;
-        }
-        if (rad !== undefined) {
-            this.radian = rad;
-        }
+        this.radian = radian;
+        this.reflectCount = reflectCount;
+        this.laserLength = laserLength;
 
-        this.lineWay = [];
-        this.reflectCount = 5;
-        this.laserLength = 3000;    
+        this.lineWay = [];  
 
         this.update();
     }
@@ -416,7 +466,7 @@ class Laser extends PIXI.Graphics {
         this.drawCircle(end.x, end.y, 5)
         this.endFill();
 
-        this.lineStyle(4, 0xff0000, 1);
+        this.lineStyle({width: 4, color: 0xff0000, join: PIXI.LINE_CAP.ROUND});
         this.moveTo(this.lineWay[0].x, this.lineWay[0].y);
 
         for (let i = 1; i < this.lineWay.length; i++) {
@@ -431,7 +481,7 @@ class Laser extends PIXI.Graphics {
 
         let infos = [];
 
-        for (let mirror of this.boxs) {
+        for (let mirror of this.boxes) {
             infos.push(...mirror.checkLineCollision(start, end));
         }
 
@@ -472,13 +522,97 @@ class Goal extends PIXI.Graphics {
     }
 }
 
+class Loader {
+    constructor() {
+        this.width = undefined;
+        this.height = undefined;
+
+        this.laserPos = undefined;
+        this.laserRadian = undefined;
+        this.laserReflectCount = undefined;
+
+        this.boxes = undefined;
+    }
+
+    load(pair) {
+        let [k, txt]= pair;
+
+        if (k === "size") {
+            this.loadSize(txt);
+        } else if (k === "laser") {
+            this.loadLaser(txt);
+        } else if (k === "box") {
+            this.loadBox(txt);
+        }
+    }
+
+    // width,height
+    loadSize(txt) {
+        [this.width, this.height] = txt.split(",").map(Number);
+    }
+
+    // x,y,radian,reflectCount
+    loadLaser(txt) {
+        let [x, y, radian, reflectCount] = txt.split(",").map(Number);
+
+        this.laserPos = new Point(x, y);
+        this.laserRadian = radian;
+        this.laserReflectCount = reflectCount
+    }
+
+    // class,x,y,radian,movable,*vertices
+    loadBox(txt) {
+        if (this.boxes === undefined) {
+            this.boxes = [];
+        }
+
+        let arr = txt.split(",");
+        let cls = arr[0]
+        let x = Number(arr[1]);
+        let y = Number(arr[2]);
+        let radian = Number(arr[3]);
+        let movable = arr[4] === "true";
+        let vertices = [];
+
+        for (let i = 0; 5 + i * 2 + 1 < arr.length; i++) {
+            vertices.push(new Point(Number(arr[5 + i * 2]), Number(arr[5 + i * 2 + 1])));
+        }
+
+        let options = {
+            vertices: vertices,
+            pos: new Point(x, y),
+            radian: radian,
+            movable: movable,
+        }
+
+        let box;
+
+        if (cls === "Box") {
+            box = new Box(options);
+        } else if (cls === "Mirror") {
+            box = new Mirror(options);
+        }
+
+        this.boxes.push(box);
+    }
+}
+
 var params = new URLSearchParams(window.location.search)
 
-for (const i of params.keys()) {
+let loader = new Loader();
+
+for (let i of params) {
     console.log(i);
-    console.log(params.get(i));
+    loader.load(i);
 }
 
 console.log(params);
 
-game = new Game()
+game = new Game({
+    width: loader.width,
+    height: loader.height,
+    laserPos: loader.laserPos,
+    laserRadian: loader.laserRadian,
+    laserReflectCount: loader.laserReflectCount,
+    boxes: loader.boxes,
+});
