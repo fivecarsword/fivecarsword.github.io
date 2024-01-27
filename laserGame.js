@@ -679,7 +679,7 @@ class BoxCreationUI extends PIXI.Graphics {
             box.cursor = "pointer";
             box.creationPos = this.creationPos;
 
-            box.on("click", this.create.bind(box));
+            box.on("pointerup", this.create.bind(box));
 
             box.setParent(this.scroll);
         }
@@ -692,6 +692,7 @@ class BoxCreationUI extends PIXI.Graphics {
     }
 
     create(event) {
+        console.log("create1");
         let newBox = new Box({
             color: this.color,
             lineColor: this.lineColor,
@@ -705,6 +706,8 @@ class BoxCreationUI extends PIXI.Graphics {
 
         this.game.movable.addChild(newBox);
         this.game.boxes.push(newBox);
+
+        console.log("create2", newBox);
     }
 }
 
