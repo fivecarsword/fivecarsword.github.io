@@ -26,7 +26,7 @@ class Editor extends Game {
 
         this.editorUI = new EditorUI({
             width: 150,
-            height: this.height - 100,
+            height: this.app.screen.height - 100,
             pos: new Point(0, 0),
             game: this,
         });

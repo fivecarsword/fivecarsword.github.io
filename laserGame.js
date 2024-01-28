@@ -115,24 +115,29 @@ class Game {
 
         document.body.appendChild(this.app.view);
 
-        this.world.eventMode = 'static';
+        this.stage.eventMode = "static";
+
+        let area = this.app.screen.clone();
+        this.stage.hitArea = area;
+
+        // this.stage.position.set(area.width / 2, area.height / 2);
 
         this.app.ticker.add((delta) => this.tick(delta));
-        this.world.on('pointermove', this.pointerMove.bind(this));
+        this.stage.on('pointermove', this.pointerMove.bind(this));
 
-        this.world.on("pointerdown", this.pointerDown.bind(this));
-        this.world.on("pointerup", this.pointerUp.bind(this));
-        this.world.on("pointerupoutside", this.pointerUpOutside.bind(this));
+        this.stage.on("pointerdown", this.pointerDown.bind(this));
+        this.stage.on("pointerup", this.pointerUp.bind(this));
+        this.stage.on("pointerupoutside", this.pointerUpOutside.bind(this));
 
         this.isObjectMoving = false;
         this.movingTaget = null;
         this.rotateLeft = false;
         this.rotateRight = false;
 
-        this.leftButton = new Button({
+        this.leftButton = new RotateLeftButton({
             width: 50,
             height: 50,
-            pos: new Point(this.app.screen.width - 170, this.app.screen.height - 150),
+            pos: new Point(this.app.screen.width - 180, this.app.screen.height - 150),
             onpointerdown: () => {
                 this.rotateLeft = true;
             },
@@ -141,10 +146,10 @@ class Game {
             }
         });
 
-        this.rightButton = new Button({
+        this.rightButton = new RotateRightButton({
             width: 50,
             height: 50,
-            pos: new Point(this.app.screen.width - 110, this.app.screen.height - 150),
+            pos: new Point(this.app.screen.width - 120, this.app.screen.height - 150),
             onpointerdown: () => {
                 this.rotateRight = true;
             },
@@ -153,10 +158,10 @@ class Game {
             }
         });
 
-        this.deleteButton = new Button({
+        this.deleteButton = new TrashBinButton({
             width: 50,
             height: 50,
-            pos: new Point(this.app.screen.width - 50, this.app.screen.height - 150),
+            pos: new Point(this.app.screen.width - 60, this.app.screen.height - 150),
             onpointerdown: () => {
                 
             },
@@ -280,15 +285,11 @@ class Game {
         if (gameobject instanceof Box) {
             this.movable.removeChild(gameobject);
             this.boxes.splice(this.boxes.indexOf(gameobject), 1);
+            this.movingTaget = null;
         }
     }
 
     tick(delta) {
-        let area = this.app.screen.clone();
-        area.x = -this.world.x;
-        area.y = -this.world.y;
-        this.world.hitArea = area;
-
         if (this.movingTaget !== null) {
             if (this.movingTaget == this.laser) {
                 if (this.rotateLeft) {
@@ -311,15 +312,15 @@ class Game {
     }
 
     pointerDown(event) {
-        this.world.on("pointermove", this.move);
+        this.stage.on("pointermove", this.move);
     }
 
     pointerUp(event) {
-        this.world.off("pointermove", this.move);
+        this.stage.off("pointermove", this.move);
     }
 
     pointerUpOutside(event) {
-        this.world.off("pointermove", this.move);
+        this.stage.off("pointermove", this.move);
     }
 
     pointerMove(event) {
@@ -462,7 +463,7 @@ class Keyboard {
     }
 }
 
-class Button extends PIXI.Graphics {
+class Button extends PIXI.Container {
     constructor({width, height, pos, onpointerdown, onpointerup}) {
         super();
         
@@ -483,9 +484,33 @@ class Button extends PIXI.Graphics {
     }
 
     draw() {
-        this.beginFill(0x00ff00);
-        this.drawRect(0, 0, this.uiWidth, this.uiHeight);
-        this.endFill();
+        this.g = new PIXI.Graphics();
+        this.addChild(this.g);
+
+        this.g.beginFill(0x00ff00);
+        this.g.drawRect(0, 0, this.uiWidth, this.uiHeight);
+        this.g.endFill();
+    }
+}
+
+class RotateLeftButton extends Button {
+    draw() {
+        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/rotate left.png");
+        this.addChild(this.image);
+    }
+}
+
+class RotateRightButton extends Button {
+    draw() {
+        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/rotate right.png");
+        this.addChild(this.image);
+    }
+}
+
+class TrashBinButton extends Button {
+    draw() {
+        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/trash bin.png");
+        this.addChild(this.image);
     }
 }
 
