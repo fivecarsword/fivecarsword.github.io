@@ -89,6 +89,7 @@ class Game {
         });
 
         this.stage = this.app.stage;
+        this.touch = new PIXI.Container();
         this.world = new PIXI.Container();
         this.ui = new PIXI.Container();
         this.movable = new PIXI.Container();
@@ -118,48 +119,25 @@ class Game {
 
         document.body.appendChild(div);
 
-        this.stage.eventMode = "static";
+        this.touch.eventMode = "static";
 
         let area = this.app.screen.clone();
-        this.stage.hitArea = area;
+        this.touch.hitArea = area;
 
         this.app.ticker.add(this.tick.bind(this));
-        this.stage.on('pointermove', this.pointerMove.bind(this));
+        this.touch.on("pointerdown", this.pointerDown.bind(this));
+        this.touch.on("pointerup", this.pointerUp.bind(this));
+        this.touch.on("pointerupoutside", this.pointerUpOutside.bind(this));
 
-        this.stage.on("pointerdown", this.pointerDown.bind(this));
-        this.stage.on("pointerup", this.pointerUp.bind(this));
-        this.stage.on("pointerupoutside", this.pointerUpOutside.bind(this));
+        this.move = this.pointerMove.bind(this);
 
         this.isObjectMoving = false;
         this.movingTaget = null;
         this.rotateLeft = false;
         this.rotateRight = false;
 
-        this.leftButton = new RotateLeftButton({
-            width: 50,
-            height: 50,
-            pos: new Point(this.app.screen.width - 180, this.app.screen.height - 150),
-            onpointerdown: () => {
-                this.rotateLeft = true;
-            },
-            onpointerup: () => {
-                this.rotateLeft = false;
-            }
-        });
-
-        this.rightButton = new RotateRightButton({
-            width: 50,
-            height: 50,
-            pos: new Point(this.app.screen.width - 120, this.app.screen.height - 150),
-            onpointerdown: () => {
-                this.rotateRight = true;
-            },
-            onpointerup: () => {
-                this.rotateRight = false;
-            }
-        });
-
-        this.deleteButton = new TrashBinButton({
+        this.deleteButton = new ImageButton({
+            imagePath: "delete.png",
             width: 50,
             height: 50,
             pos: new Point(this.app.screen.width - 60, this.app.screen.height - 150),
@@ -171,20 +149,79 @@ class Game {
             }
         });
 
+        this.rightButton = new ImageButton({
+            imagePath: "rotateRight.png",
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 120, this.app.screen.height - 150),
+            onpointerdown: () => {
+                this.rotateRight = true;
+            },
+            onpointerup: () => {
+                this.rotateRight = false;
+            }
+        });
+
+        this.leftButton = new ImageButton({
+            imagePath: "rotateLeft.png",
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 180, this.app.screen.height - 150),
+            onpointerdown: () => {
+                this.rotateLeft = true;
+            },
+            onpointerup: () => {
+                this.rotateLeft = false;
+            }
+        });
+
+        this.zoominButton = new ImageButton({
+            imagePath: "zoomIn.png",
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 240, this.app.screen.height - 150),
+            onpointerdown: () => {
+                
+            },
+            onpointerup: () => {
+                let beforeScale = this.world.scale.x;
+                let afterScale = Math.min(beforeScale * 1.2, 2);
+
+                let beforePos = new Point(this.app.screen.width / 2 - this.world.x, this.app.screen.height / 2 - this.world.y);
+                let afterPos = new Point(afterScale * beforePos.x / beforeScale, afterScale * beforePos.y / beforeScale);
+
+                this.world.scale.set(afterScale, afterScale);
+                this.world.x += beforePos.x - afterPos.x;
+                this.world.y += beforePos.y - afterPos.y;
+            }
+        });
+
+        this.zoomoutButton = new ImageButton({
+            imagePath: "zoomOut.png",
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 300, this.app.screen.height - 150),
+            onpointerdown: () => {
+                
+            },
+            onpointerup: () => {
+                let beforeScale = this.world.scale.x;
+                let afterScale = Math.max(beforeScale * 0.8, 0.2);
+
+                let beforePos = new Point(this.app.screen.width / 2 - this.world.x, this.app.screen.height / 2 - this.world.y);
+                let afterPos = new Point(afterScale * beforePos.x / beforeScale, afterScale * beforePos.y / beforeScale);
+
+                this.world.scale.set(afterScale, afterScale);
+                this.world.x += beforePos.x - afterPos.x;
+                this.world.y += beforePos.y - afterPos.y;
+            }
+        });
+
         this.ui.addChild(this.leftButton);
         this.ui.addChild(this.rightButton);
         this.ui.addChild(this.deleteButton);
-
-        this.move = ((event) => {
-            if (!this.isObjectMoving) {
-                this.world.x += event.movementX;
-                this.world.y += event.movementY;
-            } else {
-                this.movingTaget.x += event.movementX;
-                this.movingTaget.y += event.movementY;
-            }
-
-        }).bind(this);
+        this.ui.addChild(this.zoominButton);
+        this.ui.addChild(this.zoomoutButton);
 
         this.a = PIXI.Sprite.from('a.png');
         this.a.alpha = 0;
@@ -263,7 +300,9 @@ class Game {
         this.world.addChild(this.fixed);
         this.world.addChild(this.movable);
 
-        this.stage.addChild(this.world);
+        this.touch.addChild(this.world);
+
+        this.stage.addChild(this.touch);
         this.stage.addChild(this.ui);
 
         this.keyboard = new Keyboard(["a", "s", "d", "w", "q", "e", " "]);
@@ -327,20 +366,28 @@ class Game {
     }
 
     pointerDown(event) {
-        this.stage.on("pointermove", this.move);
+        this.touch.on("pointermove", this.move);
     }
 
     pointerUp(event) {
-        this.stage.off("pointermove", this.move);
+        this.touch.off("pointermove", this.move);
     }
 
     pointerUpOutside(event) {
-        this.stage.off("pointermove", this.move);
+        this.touch.off("pointermove", this.move);
     }
 
     pointerMove(event) {
         let p = this.world.toLocal(event.global).subtract(this.laser.position);
         // this.laser.radian = Math.atan2(p.y, p.x);
+
+        if (!this.isObjectMoving) {
+            this.world.x += event.movementX;
+            this.world.y += event.movementY;
+        } else {
+            this.movingTaget.x += event.movementX / this.world.scale.x;
+            this.movingTaget.y += event.movementY / this.world.scale.y;
+        }
     }
 
     createUrlParam() {
@@ -492,7 +539,11 @@ class Button extends PIXI.Container {
         this.eventMode = "static";
         this.cursor = "pointer";
 
-        this.draw();
+        try {
+            this.draw();
+        } catch {
+
+        }
     }
 
     draw() {
@@ -526,6 +577,20 @@ class TextButton extends Button {
         this.pText.anchor.set(0.5);
         this.pText.position.set(this.uiWidth / 2, this.uiHeight / 2);
         this.addChild(this.pText);
+    }
+}
+
+class ImageButton extends Button {
+    constructor({imagePath, width, height, pos, onpointerdown, onpointerup}) {
+        super({width, height, pos, onpointerdown, onpointerup});
+
+        this.imagePath = imagePath;
+
+        this.draw();
+    }
+    draw() {
+        this.image = PIXI.Sprite.from(this.imagePath);
+        this.addChild(this.image);
     }
 }
 
@@ -868,6 +933,31 @@ class BoxCreationUI extends PIXI.Graphics {
 
         this.game.movable.addChild(newBox);
         this.game.boxes.push(newBox);
+    }
+}
+
+class PopupUI extends PIXI.Graphics {
+    constructor({width, height, game}) {
+        super();
+
+        this.uiWidth = width;
+        this.uiHeight = height;
+        this.game = game;
+
+        this.container = new PIXI.Container();
+        this.container.position.set(this.game.app.screen.width / 2, this.game.app.screen.height / 2);
+
+        this.eventMode = "static";
+
+        this.draw();
+    }
+
+    draw() {
+        let screen = this.game.app.screen;
+        this.beginFill(0x000000, 0.5);
+        this.drawRect(0, 0, screen.width, screen.height);
+        this.beginFill(0xffffff, 1);
+        this.drawRect(screen.width / 2 - this.uiWidth / 2, screen.height / 2 - this.uiHeight / 2, this.uiWidth, this.uiHeight);
     }
 }
 

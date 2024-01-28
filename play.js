@@ -1,3 +1,11 @@
+function timeFormat(time) {
+    let m = Math.floor(time / 60000);
+    time %= 60000;
+    let s = Math.floor(time / 1000);
+    time %= 1000;
+    return `${m.toString().padStart(2, 0)}:${s.toString().padStart(2, 0)}:${time.toString().padEnd(3, 0)}`;
+}
+
 class Play extends Game {
     constructor({width, height, laser, goal, boxes} = {}) {
         super({width, height, laser, goal, boxes});
@@ -34,10 +42,32 @@ class Play extends Game {
             },
             onpointerdown: () => {},
             onpointerup: () => {
-                this.laser.shoot()
+                this.laser.shoot();
+                
+                if (this.goal.isActive) {
+                    this.end();
+                }
             }
         });
         this.ui.addChild(this.shootButton);
+
+        this.popup = new PopupUI({
+            width: this.app.screen.height / 3,
+            height: this.app.screen.height / 3,
+            game: this
+        });
+        // this.ui.addChild(this.popup);
+
+        this.isStart = false;
+
+        this.startTime = 0;
+        this.endTime = 0;
+
+        this.playTimeText = new PIXI.Text("", {
+            fontWeight: "bold"
+        });
+        this.playTimeText.position.set(20, 20);
+        this.ui.addChild(this.playTimeText);
 
         this.deleteButton.onpointerdown = () => {
             this.laser.wait();
@@ -52,10 +82,25 @@ class Play extends Game {
         if (this.isObjectMoving || this.rotateLeft || this.rotateRight) {
             this.laser.wait();
         }
+        
+        if (this.isStart) {
+            this.playTimeText.text = timeFormat(Date.now() - this.startTime);
+        }
     }
 
     tick(delta) {
         this.update(delta);
+    }
+
+    start() {
+        this.isStart = true;
+        this.startTime = Date.now();
+    }
+
+    end() {
+        this.isStart = false;
+        this.endTime = Date.now();
+        this.playTimeText.text = timeFormat(this.endTime - this.startTime);
     }
 }
 
