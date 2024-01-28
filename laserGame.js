@@ -126,6 +126,48 @@ class Game {
 
         this.isObjectMoving = false;
         this.movingTaget = null;
+        this.rotateLeft = false;
+        this.rotateRight = false;
+
+        this.leftButton = new Button({
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 170, this.app.screen.height - 150),
+            onpointerdown: () => {
+                this.rotateLeft = true;
+            },
+            onpointerup: () => {
+                this.rotateLeft = false;
+            }
+        });
+
+        this.rightButton = new Button({
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 110, this.app.screen.height - 150),
+            onpointerdown: () => {
+                this.rotateRight = true;
+            },
+            onpointerup: () => {
+                this.rotateRight = false;
+            }
+        });
+
+        this.deleteButton = new Button({
+            width: 50,
+            height: 50,
+            pos: new Point(this.app.screen.width - 50, this.app.screen.height - 150),
+            onpointerdown: () => {
+                
+            },
+            onpointerup: () => {
+                this.deleteGameobject(this.movingTaget);
+            }
+        });
+
+        this.ui.addChild(this.leftButton);
+        this.ui.addChild(this.rightButton);
+        this.ui.addChild(this.deleteButton);
 
         this.move = ((event) => {
             if (!this.isObjectMoving) {
@@ -233,13 +275,38 @@ class Game {
         }  
     }
 
+    deleteGameobject(gameobject) {
+        console.log(typeof gameobject);
+        if (gameobject instanceof Box) {
+            this.movable.removeChild(gameobject);
+            this.boxes.splice(this.boxes.indexOf(gameobject), 1);
+        }
+    }
+
     tick(delta) {
         let area = this.app.screen.clone();
         area.x = -this.world.x;
         area.y = -this.world.y;
         this.world.hitArea = area;
 
-        // this.laser.radian = (this.laser.radian - delta * 0.01) % (2 * Math.PI);
+        if (this.movingTaget !== null) {
+            if (this.movingTaget == this.laser) {
+                if (this.rotateLeft) {
+                    this.laser.radian = (this.laser.radian - delta * 0.01) % (2 * Math.PI);
+                }
+                if (this.rotateRight) {
+                    this.laser.radian = (this.laser.radian + delta * 0.01) % (2 * Math.PI);
+                }
+            } else {
+                if (this.rotateLeft) {
+                    this.movingTaget.rotation = (this.movingTaget.rotation - delta * 0.01) % (2 * Math.PI);
+                }
+                if (this.rotateRight) {
+                    this.movingTaget.rotation = (this.movingTaget.rotation + delta * 0.01) % (2 * Math.PI);
+                }
+            }
+        }
+
         this.laser.shoot();
     }
 
@@ -257,7 +324,7 @@ class Game {
 
     pointerMove(event) {
         let p = this.world.toLocal(event.global).subtract(this.laser.position);
-        this.laser.radian = Math.atan2(p.y, p.x);
+        // this.laser.radian = Math.atan2(p.y, p.x);
     }
 
     createUrlParam() {
@@ -395,6 +462,33 @@ class Keyboard {
     }
 }
 
+class Button extends PIXI.Graphics {
+    constructor({width, height, pos, onpointerdown, onpointerup}) {
+        super();
+        
+        this.uiWidth = width;
+        this.uiHeight = height;
+        this.position = pos;
+
+        this.hitArea = new PIXI.Rectangle(0, 0, this.uiWidth, this.uiHeight);
+
+        this.onpointerdown = () => onpointerdown();
+        this.onpointerup = () => onpointerup();
+        this.onpointerupoutside = () => onpointerup();
+
+        this.eventMode = "static";
+        this.cursor = "pointer";
+
+        this.draw();
+    }
+
+    draw() {
+        this.beginFill(0x00ff00);
+        this.drawRect(0, 0, this.uiWidth, this.uiHeight);
+        this.endFill();
+    }
+}
+
 class Gameobject extends PIXI.Graphics {
     constructor(game, movable = true) {
         super();
@@ -488,7 +582,7 @@ class Box extends Gameobject {
     draw() {
         this.clear();
         this.beginFill(this.color, this.fillAlpha);
-        this.lineStyle(4, this.lineColor)
+        this.lineStyle(4, this.lineColor);
         this.drawPolygon(this.vertices);
         this.endFill();
     }
@@ -498,7 +592,7 @@ class Mirror extends Box {
     draw() {
         this.clear();
         this.beginFill(0xffffff, 0.1);
-        this.lineStyle(4, 0x7a7a7a, 1)
+        this.lineStyle(4, 0x7a7a7a, 1);
         this.drawPolygon(this.vertices);
         this.endFill();
     }
@@ -648,13 +742,12 @@ class Goal extends Gameobject {
 }
 
 class BoxCreationUI extends PIXI.Graphics {
-    constructor({width, height, pos, creationBoxes, creationPos, game}) {
+    constructor({width, height, pos, creationBoxes, game}) {
         super();
         this.uiWidth = width;
         this.uiHeight = height;
         this.position = pos;
         this.creationBoxes = creationBoxes;
-        this.creationPos = creationPos;
         this.game = game;
 
         this.scroll = new PIXI.Container();
@@ -677,7 +770,6 @@ class BoxCreationUI extends PIXI.Graphics {
             right = right + bound.width + gap;
 
             box.cursor = "pointer";
-            box.creationPos = this.creationPos;
 
             box.on("pointerup", this.create.bind(box));
 
@@ -692,7 +784,6 @@ class BoxCreationUI extends PIXI.Graphics {
     }
 
     create(event) {
-        console.log("create1");
         let newBox = new Box({
             color: this.color,
             lineColor: this.lineColor,
@@ -706,8 +797,6 @@ class BoxCreationUI extends PIXI.Graphics {
 
         this.game.movable.addChild(newBox);
         this.game.boxes.push(newBox);
-
-        console.log("create2", newBox);
     }
 }
 

@@ -6,12 +6,12 @@ class Play extends Game {
             new Box({
                 color: 0xffffff,
                 lineColor: 0xaaaaaa,
-                reflection: true
+                reflection: true,
             }),
             new Box({
                 color: 0x000000,
                 lineColor: 0xaaaaaa,
-                reflection: false
+                reflection: false,
             }),
         ];
 
@@ -20,7 +20,6 @@ class Play extends Game {
             height: 100,
             pos: new Point(0, this.app.screen.height - 100),
             creationBoxes: creationBoxes,
-            creationPos: new Point(this.width / 2, this.height / 2),
             game: this,
         });
         this.ui.addChild(this.boxCreationUI);
