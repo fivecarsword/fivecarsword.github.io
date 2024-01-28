@@ -32,7 +32,7 @@ function linePoint(x1, y1, x2, y2, px, py) {
   
     let lineLen = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
   
-    let buffer = EPS * 100;
+    let buffer = 0.001;
   
     if (d1+d2 >= lineLen-buffer && d1+d2 <= lineLen+buffer) {
         return true;
@@ -113,14 +113,15 @@ class Game {
 
         this.app.ticker.maxFPS = 30;
 
-        document.body.appendChild(this.app.view);
+        let div = document.createElement("div");
+        div.appendChild(this.app.view);
+
+        document.body.appendChild(div);
 
         this.stage.eventMode = "static";
 
         let area = this.app.screen.clone();
         this.stage.hitArea = area;
-
-        // this.stage.position.set(area.width / 2, area.height / 2);
 
         this.app.ticker.add((delta) => this.tick(delta));
         this.stage.on('pointermove', this.pointerMove.bind(this));
@@ -289,6 +290,18 @@ class Game {
         }
     }
 
+    updateOutline() {
+        this.outline.vertices = [
+            new Point(0, 0),
+            new Point(this.width, 0),
+            new Point(this.width, this.height),
+            new Point(0, this.height)
+        ];
+        this.outline.draw();
+
+        this.laser.laserLength = Math.sqrt(this.width * this.width + this.height * this.height) + 10;
+    }
+
     tick(delta) {
         if (this.movingTaget !== null) {
             if (this.movingTaget == this.laser) {
@@ -338,7 +351,6 @@ class Game {
         params = addParameter(params, "goal", `${this.goal.x},${this.goal.y},${this.goal.radius},${this.goal.movable}`);
 
         for (let box of this.boxes) {
-            console.log(box, this.outline);
             if (box === this.outline) {
                 console.log(box);
                 continue;
@@ -365,7 +377,6 @@ class Game {
         params = addParameter(params, "goal", `${this.goal.x},${this.goal.y},${this.goal.radius},${false}`);
 
         for (let box of this.boxes) {
-            console.log(box, this.outline);
             if (box === this.outline) {
                 console.log(box);
                 continue;
@@ -392,7 +403,6 @@ class Game {
         params = addParameter(params, "goal", `${this.goal.x},${this.goal.y},${this.goal.radius},${true}`);
 
         for (let box of this.boxes) {
-            console.log(box, this.outline);
             if (box === this.outline) {
                 console.log(box);
                 continue;
@@ -403,7 +413,7 @@ class Game {
             }
             vertices = vertices.slice(0, -1);
 
-            params = addParameter(params, "box", `${box.color},${box.lineColor},${box.fillAlpha},${box.x},${box.y},${box.rotation},${false},${box.reflection},${vertices}`);
+            params = addParameter(params, "box", `${box.color},${box.lineColor},${box.fillAlpha},${box.x},${box.y},${box.rotation},${true},${box.reflection},${vertices}`);
         }
 
         return params;
@@ -490,6 +500,29 @@ class Button extends PIXI.Container {
         this.g.beginFill(0x00ff00);
         this.g.drawRect(0, 0, this.uiWidth, this.uiHeight);
         this.g.endFill();
+    }
+}
+
+class TextButton extends Button {
+    constructor({text, width, height, pos, onpointerdown, onpointerup}) {
+        super({width, height, pos, onpointerdown, onpointerup});
+
+        this.text = text;
+        this.draw();
+    }
+
+    draw() {
+        this.g = new PIXI.Graphics();
+        this.addChild(this.g);
+
+        this.g.beginFill(0xffffff);
+        this.g.drawRect(0, 0, this.uiWidth, this.uiHeight);
+        this.g.endFill();
+
+        this.pText = new PIXI.Text(this.text);
+        this.pText.anchor.set(0.5);
+        this.pText.position.set(this.uiWidth / 2, this.uiHeight / 2);
+        this.addChild(this.pText);
     }
 }
 
@@ -757,6 +790,7 @@ class Goal extends Gameobject {
     }
 
     draw() {
+        this.clear();
         this.beginFill(0x0000ee);
         this.drawCircle(0, 0, this.radius);
     }
