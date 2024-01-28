@@ -23,6 +23,39 @@ class Play extends Game {
             game: this,
         });
         this.ui.addChild(this.boxCreationUI);
+
+        this.shootButton = new TextButton({
+            text: "Shoot",
+            width: 120,
+            height: 30,
+            pos: new Point(15, this.app.screen.height - 145),
+            textStyle: {
+                fontSize: 22
+            },
+            onpointerdown: () => {},
+            onpointerup: () => {
+                this.laser.shoot()
+            }
+        });
+        this.ui.addChild(this.shootButton);
+
+        this.deleteButton.onpointerdown = () => {
+            this.laser.wait();
+        };
+
+        this.laser.wait();
+    }
+
+    update(delta) {
+        super.update(delta);
+        
+        if (this.isObjectMoving || this.rotateLeft || this.rotateRight) {
+            this.laser.wait();
+        }
+    }
+
+    tick(delta) {
+        this.update(delta);
     }
 }
 

@@ -123,7 +123,7 @@ class Game {
         let area = this.app.screen.clone();
         this.stage.hitArea = area;
 
-        this.app.ticker.add((delta) => this.tick(delta));
+        this.app.ticker.add(this.tick.bind(this));
         this.stage.on('pointermove', this.pointerMove.bind(this));
 
         this.stage.on("pointerdown", this.pointerDown.bind(this));
@@ -282,10 +282,9 @@ class Game {
     }
 
     deleteGameobject(gameobject) {
-        console.log(typeof gameobject);
         if (gameobject instanceof Box) {
-            this.movable.removeChild(gameobject);
             this.boxes.splice(this.boxes.indexOf(gameobject), 1);
+            gameobject.destroy();
             this.movingTaget = null;
         }
     }
@@ -302,7 +301,7 @@ class Game {
         this.laser.laserLength = Math.sqrt(this.width * this.width + this.height * this.height) + 10;
     }
 
-    tick(delta) {
+    update(delta) {
         if (this.movingTaget !== null) {
             if (this.movingTaget == this.laser) {
                 if (this.rotateLeft) {
@@ -320,7 +319,10 @@ class Game {
                 }
             }
         }
+    }
 
+    tick(delta) {
+        this.update(delta);
         this.laser.shoot();
     }
 
@@ -504,10 +506,11 @@ class Button extends PIXI.Container {
 }
 
 class TextButton extends Button {
-    constructor({text, width, height, pos, onpointerdown, onpointerup}) {
+    constructor({text, width, height, pos, textStyle, onpointerdown, onpointerup}) {
         super({width, height, pos, onpointerdown, onpointerup});
 
         this.text = text;
+        this.textStyle = textStyle;
         this.draw();
     }
 
@@ -519,7 +522,7 @@ class TextButton extends Button {
         this.g.drawRect(0, 0, this.uiWidth, this.uiHeight);
         this.g.endFill();
 
-        this.pText = new PIXI.Text(this.text);
+        this.pText = new PIXI.Text(this.text, this.textStyle);
         this.pText.anchor.set(0.5);
         this.pText.position.set(this.uiWidth / 2, this.uiHeight / 2);
         this.addChild(this.pText);
@@ -728,6 +731,15 @@ class Laser extends Gameobject {
             this.lineWay[this.lineWay.length - 1].copyFrom(goalPos.subtract(this.position));
         }
         
+        this.draw();
+    }
+
+    wait() {
+        this.lineWay.length = 0;
+
+        this.lineWay.push(new Point(0, 0));
+        this.lineWay.push(new Point(50 * cos(this.radian), 50 * sin(this.radian)));
+
         this.draw();
     }
 

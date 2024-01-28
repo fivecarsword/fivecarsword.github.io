@@ -90,8 +90,11 @@ class EditorUI extends PIXI.Graphics {
         this.saveButton = new TextButton({
             text: "Save",
             width: 120,
-            height: 50,
+            height: 30,
             pos: new Point(15, 220),
+            textStyle: {
+                fontSize: 22,
+            },
             onpointerup: () => {
                 window.navigator.clipboard.writeText("https://fivecarsword.github.io/editor?" + this.game.createEditorUrlParam()).then(() => {
                     alert("복사 완료");
@@ -102,8 +105,11 @@ class EditorUI extends PIXI.Graphics {
         this.exportButton = new TextButton({
             text: "Export",
             width: 120,
-            height: 50,
+            height: 30,
             pos: new Point(15, 280),
+            textStyle: {
+                fontSize: 22,
+            },
             onpointerup: () => {
                 window.navigator.clipboard.writeText("https://fivecarsword.github.io/play?" + this.game.createPlayUrlParam()).then(() => {
                     alert("복사 완료");
