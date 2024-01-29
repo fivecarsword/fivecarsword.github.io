@@ -60,22 +60,33 @@ class Play extends Game {
         });
         this.ui.addChild(this.startPopup);
 
+        this.clearPopup = new ClearPopup({
+            width: popupSize,
+            height: popupSize,
+            game: this
+        });
+        this.clearPopup.visible = false;
+        this.ui.addChild(this.clearPopup);
+
         this.isStart = false;
 
         this.startTime = 0;
         this.endTime = 0;
 
-        this.playTimeText = new PIXI.Text("", {
+        this.gameInfoText = new PIXI.Text("", {
+            fontFamily: "Consolas",
             fontWeight: "bold"
         });
-        this.playTimeText.position.set(20, 20);
-        this.ui.addChild(this.playTimeText);
+        this.gameInfoText.position.set(20, 20);
+        this.ui.addChild(this.gameInfoText);
 
         this.deleteButton.onpointerdown = () => {
             this.laser.wait();
         };
 
         this.laser.wait();
+
+        this.score = 0;
     }
 
     update(delta) {
@@ -86,7 +97,8 @@ class Play extends Game {
         }
         
         if (this.isStart) {
-            this.playTimeText.text = timeFormat(Date.now() - this.startTime);
+            let curTime = Date.now();
+            this.gameInfoText.text = `${timeFormat(curTime - this.startTime)}`;
         }
     }
 
@@ -103,7 +115,32 @@ class Play extends Game {
     end() {
         this.isStart = false;
         this.endTime = Date.now();
-        this.playTimeText.text = timeFormat(this.endTime - this.startTime);
+        this.score = 5000 - Math.floor((this.endTime - this.startTime) / 1000) - this.movable.children.length * 10;
+        this.gameInfoText.text = timeFormat(this.endTime - this.startTime);
+        
+        this.clearPopup.updateText();
+        this.clearPopup.visible = true;
+    }
+
+    reset() {
+        this.isStart = false;
+        this.movingTaget = null;
+
+        for (let i = 0; i < this.boxes.length; i++) {
+            if (this.boxes[i].movable) {
+                this.boxes[i].destroy();
+                this.boxes.splice(i, 1);
+                i--;
+            }
+        }
+
+        this.world.scale.set(1);
+        this.world.position = new Point(this.app.screen.width / 2 - this.width / 2, this.app.screen.height / 2 - this.height / 2);
+
+        this.laser.wait();
+
+        this.startPopup.visible = true;
+        this.clearPopup.visible = false;
     }
 }
 
@@ -115,6 +152,7 @@ class StartPopup extends Popup {
             fontSize: Math.min(this.uiWidth, this.uiHeight) / 10,
             fontWeight: "bold",
             fontFamily: "Consolas",
+            align: "center",
         };
 
         this.text = new PIXI.Text(
@@ -128,7 +166,7 @@ class StartPopup extends Popup {
             textStyle: fontStyle,
             width: this.uiWidth / 3,
             height: fontStyle.fontSize * 1.5,
-            pos: new Point(0, this.uiHeight / 2 - 10),
+            pos: new Point(0, this.uiHeight / 2 - 20),
             onpointerdown: () => {},
             onpointerup: () => {
                 this.game.start();
@@ -136,6 +174,56 @@ class StartPopup extends Popup {
         });
         this.startButton.pivot.set(this.startButton.uiWidth / 2, this.startButton.uiHeight);
         this.container.addChild(this.startButton);
+    }
+}
+
+class ClearPopup extends Popup {
+    constructor({width, height, game}) {
+        super({width, height, game});
+
+        let fontStyle = {
+            fontSize: Math.min(this.uiWidth, this.uiHeight) / 10,
+            fontWeight: "bold",
+            fontFamily: "Consolas",
+            align: "center",
+        };
+
+        this.text = new PIXI.Text("", fontStyle);
+        this.text.position.set(0, -this.uiHeight / 2);
+        this.text.anchor.set(0.5, 0);
+        this.container.addChild(this.text);
+
+        this.resetButton = new TextButton({
+            text: "Again",
+            textStyle: fontStyle,
+            width: this.uiWidth / 3,
+            height: fontStyle.fontSize * 1.5,
+            pos: new Point(-10, this.uiHeight / 2 - 20),
+            onpointerdown: () => {},
+            onpointerup: () => {
+                this.game.reset();
+            }
+        });
+        this.resetButton.pivot.set(this.resetButton.uiWidth, this.resetButton.uiHeight);
+        this.container.addChild(this.resetButton);
+
+        this.backButton = new TextButton({
+            text: "Back",
+            textStyle: fontStyle,
+            width: this.uiWidth / 3,
+            height: fontStyle.fontSize * 1.5,
+            pos: new Point(10, this.uiHeight / 2 - 20),
+            onpointerdown: () => {},
+            onpointerup: () => {
+                location.href = "https://fivecarsword.github.io"
+            }
+        });
+        this.backButton.pivot.set(0, this.backButton.uiHeight);
+        this.container.addChild(this.backButton);
+    }
+
+    updateText() {
+        this.text.text = `\n\n${timeFormat(this.game.endTime - this.game.startTime)}\n\nScore ${this.game.score}`;
     }
 }
 
