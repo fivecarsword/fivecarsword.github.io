@@ -115,7 +115,7 @@ class Play extends Game {
     end() {
         this.isStart = false;
         this.endTime = Date.now();
-        this.score = 5000 - Math.floor((this.endTime - this.startTime) / 1000) - this.movable.children.length * 10;
+        this.score = 5000 - Math.floor((this.endTime - this.startTime) / 1000) - this.movable.children.length * 30;
         this.gameInfoText.text = timeFormat(this.endTime - this.startTime);
         
         this.clearPopup.updateText();
