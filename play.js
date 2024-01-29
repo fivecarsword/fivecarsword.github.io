@@ -38,7 +38,8 @@ class Play extends Game {
             height: 30,
             pos: new Point(this.app.screen.width - 135, this.app.screen.height - 195),
             textStyle: {
-                fontSize: 22
+                fontSize: 22,
+                fontWeight: "bold",
             },
             onpointerdown: () => {},
             onpointerup: () => {
@@ -115,7 +116,7 @@ class Play extends Game {
     end() {
         this.isStart = false;
         this.endTime = Date.now();
-        this.score = 1000 - Math.floor((this.endTime - this.startTime) / 1000) * 5 - this.movable.children.length * 50;
+        this.score = 1000 - Math.floor((this.endTime - this.startTime) / 1000) * 3 - this.movable.children.length * 30;
         this.gameInfoText.text = timeFormat(this.endTime - this.startTime);
         
         this.clearPopup.updateText();
