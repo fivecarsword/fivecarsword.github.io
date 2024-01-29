@@ -36,7 +36,7 @@ class Play extends Game {
             text: "Shoot",
             width: 120,
             height: 30,
-            pos: new Point(15, this.app.screen.height - 145),
+            pos: new Point(this.app.screen.width - 135, this.app.screen.height - 195),
             textStyle: {
                 fontSize: 22
             },
@@ -51,12 +51,14 @@ class Play extends Game {
         });
         this.ui.addChild(this.shootButton);
 
-        this.popup = new PopupUI({
-            width: this.app.screen.height / 3,
-            height: this.app.screen.height / 3,
+        let popupSize = Math.min(this.app.screen.width, this.app.screen.height) / 2
+
+        this.startPopup = new StartPopup({
+            width: popupSize,
+            height: popupSize,
             game: this
         });
-        // this.ui.addChild(this.popup);
+        this.ui.addChild(this.startPopup);
 
         this.isStart = false;
 
@@ -95,12 +97,45 @@ class Play extends Game {
     start() {
         this.isStart = true;
         this.startTime = Date.now();
+        this.startPopup.visible = false;
     }
 
     end() {
         this.isStart = false;
         this.endTime = Date.now();
         this.playTimeText.text = timeFormat(this.endTime - this.startTime);
+    }
+}
+
+class StartPopup extends Popup {
+    constructor({width, height, game}) {
+        super({width, height, game});
+
+        let fontStyle = {
+            fontSize: Math.min(this.uiWidth, this.uiHeight) / 10,
+            fontWeight: "bold",
+            fontFamily: "Consolas",
+        };
+
+        this.text = new PIXI.Text(
+            `\n\nReflection ${this.game.laser.reflectCount}\n\nObject     ${this.game.fixed.children.length - 1}`, fontStyle);
+        this.text.position.set(0, -this.uiHeight / 2);
+        this.text.anchor.set(0.5, 0);
+        this.container.addChild(this.text);
+
+        this.startButton = new TextButton({
+            text: "Start",
+            textStyle: fontStyle,
+            width: this.uiWidth / 3,
+            height: fontStyle.fontSize * 1.5,
+            pos: new Point(0, this.uiHeight / 2 - 10),
+            onpointerdown: () => {},
+            onpointerup: () => {
+                this.game.start();
+            }
+        });
+        this.startButton.pivot.set(this.startButton.uiWidth / 2, this.startButton.uiHeight);
+        this.container.addChild(this.startButton);
     }
 }
 

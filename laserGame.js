@@ -594,27 +594,6 @@ class ImageButton extends Button {
     }
 }
 
-class RotateLeftButton extends Button {
-    draw() {
-        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/rotate left.png");
-        this.addChild(this.image);
-    }
-}
-
-class RotateRightButton extends Button {
-    draw() {
-        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/rotate right.png");
-        this.addChild(this.image);
-    }
-}
-
-class TrashBinButton extends Button {
-    draw() {
-        this.image = PIXI.Sprite.from("https://fivecarsword.github.io/trash bin.png");
-        this.addChild(this.image);
-    }
-}
-
 class Gameobject extends PIXI.Graphics {
     constructor(game, movable = true) {
         super();
@@ -936,7 +915,7 @@ class BoxCreationUI extends PIXI.Graphics {
     }
 }
 
-class PopupUI extends PIXI.Graphics {
+class Popup extends PIXI.Graphics {
     constructor({width, height, game}) {
         super();
 
@@ -946,6 +925,7 @@ class PopupUI extends PIXI.Graphics {
 
         this.container = new PIXI.Container();
         this.container.position.set(this.game.app.screen.width / 2, this.game.app.screen.height / 2);
+        this.addChild(this.container);
 
         this.eventMode = "static";
 
@@ -956,7 +936,7 @@ class PopupUI extends PIXI.Graphics {
         let screen = this.game.app.screen;
         this.beginFill(0x000000, 0.5);
         this.drawRect(0, 0, screen.width, screen.height);
-        this.beginFill(0xffffff, 1);
+        this.beginFill(0xcccccc, 1);
         this.drawRect(screen.width / 2 - this.uiWidth / 2, screen.height / 2 - this.uiHeight / 2, this.uiWidth, this.uiHeight);
     }
 }
