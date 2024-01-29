@@ -88,6 +88,8 @@ class Game {
             antialiasing: true,
         });
 
+        console.log(new PIXI.SmoothGraphics())
+
         this.stage = this.app.stage;
         this.touch = new PIXI.Container();
         this.world = new PIXI.Container();

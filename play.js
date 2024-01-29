@@ -115,7 +115,7 @@ class Play extends Game {
     end() {
         this.isStart = false;
         this.endTime = Date.now();
-        this.score = 1000 - Math.floor((this.endTime - this.startTime) / 1000) - this.movable.children.length * 30;
+        this.score = 1000 - Math.floor((this.endTime - this.startTime) / 1000) * 5 - this.movable.children.length * 50;
         this.gameInfoText.text = timeFormat(this.endTime - this.startTime);
         
         this.clearPopup.updateText();
@@ -224,6 +224,14 @@ class ClearPopup extends Popup {
 
     updateText() {
         this.text.text = `\n\n${timeFormat(this.game.endTime - this.game.startTime)}\n\nScore ${this.game.score}`;
+    }
+}
+
+class A {
+    aing
+
+    constructor() {
+
     }
 }
 
