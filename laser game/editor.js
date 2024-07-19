@@ -96,7 +96,7 @@ class EditorUI extends PIXI.Graphics {
                 fontSize: 22,
             },
             onpointerup: () => {
-                window.navigator.clipboard.writeText("https://fivecarsword.github.io/editor?" + this.game.createEditorUrlParam()).then(() => {
+                window.navigator.clipboard.writeText("https://fivecarsword.github.io/laser game/editor?" + this.game.createEditorUrlParam()).then(() => {
                     alert("복사 완료");
                 });
             },
@@ -111,7 +111,7 @@ class EditorUI extends PIXI.Graphics {
                 fontSize: 22,
             },
             onpointerup: () => {
-                window.navigator.clipboard.writeText("https://fivecarsword.github.io/play?" + this.game.createPlayUrlParam()).then(() => {
+                window.navigator.clipboard.writeText("https://fivecarsword.github.io/laser game/play?" + this.game.createPlayUrlParam()).then(() => {
                     alert("복사 완료");
                 });
             },
